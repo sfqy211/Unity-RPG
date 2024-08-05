@@ -19,6 +19,10 @@ public class Player : MonoBehaviour
     [SerializeField] private float dashCooldown;
     private float dashCoolDownTimer;
     
+    [Header("Attack info")]
+    private bool isAttacking;
+    private int comboCounter;
+    
     private float xInput;
 
     private int facingDir = 1;
@@ -41,20 +45,17 @@ public class Player : MonoBehaviour
         CheckInput();
         CollisionChecks();
         
-        Dash();
+        dashTime -= Time.deltaTime;
+        dashCoolDownTimer -= Time.deltaTime;
+        
+        
         FlipController();
         AnimatorControllers();
     }
 
-    private void Dash()
+    public void AttackOver()
     {
-        dashTime -= Time.deltaTime;
-        dashCoolDownTimer -= Time.deltaTime;
-        if (Input.GetKeyDown(KeyCode.LeftShift) && dashCoolDownTimer < 0)
-        {
-            dashCoolDownTimer = dashCooldown;
-            dashTime = dashDuration;
-        }
+        isAttacking = false;
     }
 
     private void CollisionChecks()
@@ -66,9 +67,28 @@ public class Player : MonoBehaviour
     {
         xInput = UnityEngine.Input.GetAxisRaw("Horizontal");
 
+        if (Input.GetKeyDown(KeyCode.Mouse0))
+        {
+            isAttacking = true;
+        }
+
         if (UnityEngine.Input.GetKeyDown(KeyCode.Space))
         {
             Jump();
+        }
+
+        if (Input.GetKeyDown(KeyCode.LeftShift))
+        {
+            DashAbility();
+        }
+    }
+
+    private void DashAbility()
+    {
+        if (dashCoolDownTimer < 0)
+        {
+            dashCoolDownTimer = dashCooldown;
+            dashTime = dashDuration;
         }
     }
 
@@ -101,6 +121,8 @@ public class Player : MonoBehaviour
         anim.SetBool("isMoving", isMoving);
         anim.SetBool("isGrounded", isGrounded);
         anim.SetBool("isDashing", dashTime > 0);
+        anim.SetBool("isAttacking", isAttacking);
+        anim.SetInteger("comboCounter", comboCounter);
     }
 
     private void Flip()
