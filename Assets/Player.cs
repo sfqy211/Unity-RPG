@@ -3,11 +3,9 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Player : MonoBehaviour
+public class Player : Entity
 {
-    private Rigidbody2D rb;
-    private Animator anim;
-
+    [Header("Move info")]
     [SerializeField]private float moveSpace;
     [SerializeField]private float jumpForce;
     
@@ -20,33 +18,31 @@ public class Player : MonoBehaviour
     private float dashCoolDownTimer;
     
     [Header("Attack info")]
+    [SerializeField]private float comboTime = .3f;
+    private  float comboTimeWindow;
     private bool isAttacking;
     private int comboCounter;
     
     private float xInput;
 
-    private int facingDir = 1;
-    private bool facingRight = true;
-
-    [Header("Collision info")]
-    [SerializeField] private float groundCheckDistance;
-    [SerializeField] private  LayerMask whatIsGround;
-    private  bool isGrounded;
     
-    void Start()
+    protected override void Start()
     {
-        rb = GetComponent<Rigidbody2D>();
-        anim = GetComponentInChildren<Animator>();
+        base.Start();
+        
     }
 
-    void Update()
+    protected override void Update()
     {
+        base.Update();
+        
         Movement();
         CheckInput();
-        CollisionChecks();
         
         dashTime -= Time.deltaTime;
         dashCoolDownTimer -= Time.deltaTime;
+        comboTimeWindow -= Time.deltaTime;
+        
         
         
         FlipController();
@@ -56,23 +52,24 @@ public class Player : MonoBehaviour
     public void AttackOver()
     {
         isAttacking = false;
-    }
 
-    private void CollisionChecks()
-    {
-        isGrounded = Physics2D.Raycast(transform.position, Vector2.down, groundCheckDistance, whatIsGround);
-    }
+        comboCounter++;
+        
+        if (comboCounter > 2)
+            comboCounter = 0;
 
+    }
+    
     private void CheckInput()
     {
-        xInput = UnityEngine.Input.GetAxisRaw("Horizontal");
+        xInput = Input.GetAxisRaw("Horizontal");
 
         if (Input.GetKeyDown(KeyCode.Mouse0))
         {
-            isAttacking = true;
+            StartAttackEvent();
         }
 
-        if (UnityEngine.Input.GetKeyDown(KeyCode.Space))
+        if (Input.GetKeyDown(KeyCode.Space))
         {
             Jump();
         }
@@ -83,9 +80,21 @@ public class Player : MonoBehaviour
         }
     }
 
+    private void StartAttackEvent()
+    {
+        if (!isGrounded)
+            return;
+        
+        if (comboTimeWindow < 0) 
+            comboCounter = 0;
+            
+        isAttacking = true;
+        comboTimeWindow = comboTime;
+    }
+
     private void DashAbility()
     {
-        if (dashCoolDownTimer < 0)
+        if (dashCoolDownTimer < 0  && !isAttacking)
         {
             dashCoolDownTimer = dashCooldown;
             dashTime = dashDuration;
@@ -94,9 +103,13 @@ public class Player : MonoBehaviour
 
     private void Movement()
     {
-        if (dashTime > 0)
+        if (isAttacking)
         {
-            rb.velocity = new Vector2(xInput * dashSpeed, 0);
+            rb.velocity = new Vector2(0, 0);
+        }
+        else if (dashTime > 0)
+        {
+            rb.velocity = new Vector2( facingDir * dashSpeed, 0);
         }
         else
         {
@@ -125,12 +138,7 @@ public class Player : MonoBehaviour
         anim.SetInteger("comboCounter", comboCounter);
     }
 
-    private void Flip()
-    {
-        facingDir = facingDir * -1;
-        facingRight = !facingRight;
-        transform.Rotate(0, 180, 0);
-    }
+    
 
     private void FlipController()
     {
@@ -144,8 +152,5 @@ public class Player : MonoBehaviour
         }
     }
 
-    private void OnDrawGizmos()
-    {
-        Gizmos.DrawLine(transform.position, new Vector3(transform.position.x, transform.position.y - groundCheckDistance));
-    }
+    
 }
